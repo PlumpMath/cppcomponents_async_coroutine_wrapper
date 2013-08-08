@@ -1,3 +1,12 @@
+//          Copyright John R. Bandela 2013.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
+
+#pragma once
+#ifndef INCLUDE_GUARD_7f279f29_bae1_46e9_8aa9_846e6390f844
+#define INCLUDE_GUARD_7f279f29_bae1_46e9_8aa9_846e6390f844
+
 #include <cppcomponents/cppcomponents.hpp>
 #include <cppcomponents/events.hpp>
 
@@ -36,3 +45,6 @@ typedef cppcomponents::runtime_class<CoroutineVoidPtrId, cppcomponents::object_i
 typedef cppcomponents::use_runtime_class<CoroutineVoidPtr_t> CoroutineVoidPtr;
 
 }
+
+
+#endif
