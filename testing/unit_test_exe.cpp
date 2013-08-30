@@ -136,3 +136,27 @@ TEST_CASE("Async", "[async]"){
 
 	REQUIRE(i == 10);
 }
+TEST_CASE("Async2", "[async2]"){
+
+	std::atomic<bool> done{ false };
+
+	int i = 0;
+
+	auto f = cppcomponents::resumable<void>([](std::atomic<bool>* pdone, int* pi, cppcomponents::awaiter<void> await){
+		auto f = cppcomponents::resumable<int>([](cppcomponents::awaiter<int> await){
+
+			auto f = cppcomponents::async(launch_on_new_thread_executor::create().QueryInterface<cppcomponents::IExecutor>(),
+				[]{return 10; });
+			return await(f);
+		});
+		*pi = await(f());
+		pdone->store(true);
+
+	});
+
+	f(&done, &i);
+	// busy wait
+	while (done.load() == false);
+
+	REQUIRE(i == 10);
+}
