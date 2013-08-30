@@ -195,7 +195,7 @@ namespace cppcomponents{
 		struct return_helper<R(awaiter<R>)>{
 			typedef R type;
 		};
-	}
+
 
 	template<class F>
 	use<IFuture<typename std::result_of<F(detail::convertible_to_async_helper)>::type>> do_async(F f){
@@ -203,6 +203,7 @@ namespace cppcomponents{
 		return ret->run();
 	}
 
+	
 	template<class R,class F>
 	struct do_async_functor{
 		F f_;
@@ -215,9 +216,11 @@ namespace cppcomponents{
 		do_async_functor(F f) : f_{ f }{}
 	};
 
+	}
+
 	template<class R, class F>
-	do_async_functor<R, F> resumable(F f){
-		return do_async_functor<R, F>{f};
+	detail::do_async_functor<R, F> resumable(F f){
+		return detail::do_async_functor<R, F>{f};
 	}
 
 }
