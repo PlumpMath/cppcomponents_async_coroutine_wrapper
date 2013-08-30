@@ -120,18 +120,18 @@ TEST_CASE("Async", "[async]"){
 
 	int i = 0;
 
-	auto f = cppcomponents::resumable([&done, &i](cppcomponents::awaiter<void> await){
+	auto f = cppcomponents::resumable<void>([&done](int* pi,cppcomponents::awaiter<void> await){
 
 		auto f = cppcomponents::async(launch_on_new_thread_executor::create().QueryInterface<cppcomponents::IExecutor>(),
 			[]{return 10; });
 
-		i = await(f);
+		*pi = await(f);
 		done.store(true);
 		//return 0;
 
 	});
 
-
+	f(&i);
 	// busy wait
 	while (done.load() == false);
 

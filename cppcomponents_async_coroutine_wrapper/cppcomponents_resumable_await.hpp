@@ -198,10 +198,28 @@ namespace cppcomponents{
 	}
 
 	template<class F>
-	use<IFuture<typename std::result_of<F(detail::convertible_to_async_helper)>::type>> resumable(F f){
+	use<IFuture<typename std::result_of<F(detail::convertible_to_async_helper)>::type>> do_async(F f){
 		auto ret = std::make_shared<detail::simple_async_function_holder<F>>(f);
 		return ret->run();
 	}
+
+	template<class R,class F>
+	struct do_async_functor{
+		F f_;
+		template<class... T>
+		use<IFuture<R>> operator()(T && ... t){
+			using namespace std::placeholders;
+			return do_async(std::bind(f_,std::forward<T>(t)..., _1));
+		}
+
+		do_async_functor(F f) : f_{ f }{}
+	};
+
+	template<class R, class F>
+	do_async_functor<R, F> resumable(F f){
+		return do_async_functor<R, F>{f};
+	}
+
 }
 
 
