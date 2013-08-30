@@ -18,6 +18,9 @@
     <ClInclude Include="..\..\cppcomponents_async_coroutine_wrapper\cppcomponents_async_coroutine_wrapper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\cppcomponents_async_coroutine_wrapper\cppcomponents_resumable_await.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\testing\unit_test_exe.cpp">
