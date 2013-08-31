@@ -77,26 +77,13 @@ namespace cppcomponents{
 		typedef detail::coroutine_holder* co_ptr;
 		typedef std::function<use<IFuture<T>>()> func_type;
 		co_ptr co_;
-	public:
-		awaiter(co_ptr c)
-			: co_(c)
-		{
-
-		}
-
-
-
-		awaiter(detail::convertible_to_async_helper);
-
 
 		template<class R>
-		R operator()(use<IFuture<R>> t){
-			PPL_HELPER_ENTER_EXIT;
-			assert(co_->coroutine_caller_);
+		func_type get_function(use < IFuture < R >> t){
 			auto co = co_;
 			func_type retfunc([co, t]()mutable{
 				auto sptr = co->shared_from_this();
-				return t.Then([sptr](use<IFuture<R>> et)mutable{
+				return t.Then([sptr](use < IFuture < R >> et)mutable{
 					detail::ret_type ret;
 					ret.eptr_ = nullptr;
 					ret.pv_ = nullptr;
@@ -115,8 +102,35 @@ namespace cppcomponents{
 				}).Unwrap();
 			});
 
+			return retfunc;
+
+		}
+	public:
+		awaiter(co_ptr c)
+			: co_(c)
+		{
+
+		}
+
+
+
+		awaiter(detail::convertible_to_async_helper);
+
+		template<class R>
+		use<IFuture<R>> as_future(use < IFuture < R >> t){
+			if (t.Ready()){
+				return t;
+			}
+			auto retfunc = get_function(t);
+			PPL_HELPER_ENTER_EXIT;
+			assert(co_->coroutine_caller_);
 			(*co_->coroutine_caller_)(&retfunc);
-			return static_cast<detail::ret_type*>(co_->coroutine_caller_->Get())->get<use<IFuture<R>>>().Get();
+			return static_cast<detail::ret_type*>(co_->coroutine_caller_->Get())->get < use < IFuture<R >> >();
+		}
+
+		template<class R>
+		R operator()(use<IFuture<R>> t){
+			return as_future(t).Get();
 		}
 
 	};
