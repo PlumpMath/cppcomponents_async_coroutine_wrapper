@@ -1,5 +1,3 @@
-#include <cppcomponents/future.hpp>
-#include "cppcomponents_async_coroutine_wrapper.hpp"
 
 // Copyright (c) 2013 John R. Bandela
 //
@@ -7,8 +5,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#ifndef ASYNC_HELPER_PPL_HELPER_IMP_INCLUDED_04_24_2013
-#define ASYNC_HELPER_PPL_HELPER_IMP_INCLUDED_04_24_2013
+#ifndef INCLUDE_GUARD_CPPCOMPONENTS_RESUMABLE_AWAIT_HPP_
+#define INCLUDE_GUARD_CPPCOMPONENTS_RESUMABLE_AWAIT_HPP_
+
+#include <cppcomponents/future.hpp>
+#include "cppcomponents_async_coroutine_wrapper.hpp"
 
 #include <memory>
 #include <exception>
