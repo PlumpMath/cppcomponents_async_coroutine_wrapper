@@ -21,7 +21,7 @@
 #ifdef PPL_HELPER_OUTPUT_ENTER_EXIT
 #include <cstdio>
 #include <atomic>
-#define PPL_HELPER_ENTER_EXIT ::CPP_ASYNC_AWAIT_PPL_NAMESPACE::detail::EnterExit ppl_helper_enter_exit_var;
+#define PPL_HELPER_ENTER_EXIT ::cppcomponents::detail::EnterExit ppl_helper_enter_exit_var;
 #else
 #define PPL_HELPER_ENTER_EXIT
 #endif
@@ -121,7 +121,7 @@ namespace cppcomponents{
 						func_type f(std::move(*static_cast<func_type*>(sptr->coroutine_->Get())));
 						return f();
 					}
-					catch (std::exception&){
+					catch (std::exception& e){
 						ret.eptr_ = std::current_exception();
 						ret.pv_ = nullptr;
 						(*sptr->coroutine_)(&ret);
