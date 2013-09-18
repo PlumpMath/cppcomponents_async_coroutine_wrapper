@@ -184,3 +184,30 @@ TEST_CASE("Async3", "[async2]"){
 
 	REQUIRE(i == 10);
 }
+
+
+#include <cppcomponents/loop_executor.hpp>
+TEST_CASE("Async Execption", "Async Exception"){
+
+	cppcomponents::LoopExecutor executor;
+
+	auto f = cppcomponents::resumable<int>([&](cppcomponents::awaiter<int> await){
+		auto f2 = []()->int{
+			cppcomponents::throw_if_error(-101);
+			return 5;
+		};
+
+		auto fut = cppcomponents::async(executor, f2);
+		auto resfut = await(fut);
+		cppcomponents::throw_if_error(-777);
+		return 7;
+
+	});
+
+	auto fut = f();
+	while(executor.NumPendingClosures())
+		executor.RunQueuedClosures();
+	auto ec = fut.ErrorCode();
+	REQUIRE(ec == -101);
+
+}

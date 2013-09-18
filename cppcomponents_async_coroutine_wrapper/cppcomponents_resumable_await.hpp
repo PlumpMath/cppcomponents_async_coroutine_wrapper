@@ -226,12 +226,10 @@ namespace cppcomponents{
 					});
 					ca(&retfunc);
 				}
-				catch (std::exception&){
-					auto eptr = std::current_exception();
-					func_type retfunc([eptr](){
-						task_t ret;
-						std::rethrow_exception(eptr);
-						return ret;
+				catch (std::exception& e){
+					auto ec = cppcomponents::error_mapper::error_code_from_exception(e);
+					func_type retfunc([ec](){
+						return cppcomponents::make_error_future<return_type>(ec);
 					});
 					ca(&retfunc);
 				}
