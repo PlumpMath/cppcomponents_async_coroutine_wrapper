@@ -122,6 +122,7 @@ namespace cppcomponents{
 						return f();
 					}
 					catch (std::exception& e){
+						(void)e;
 						ret.eptr_ = std::current_exception();
 						ret.pv_ = nullptr;
 						(*sptr->coroutine_)(&ret);
