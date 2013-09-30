@@ -51,6 +51,7 @@ namespace cppcomponents{
 			typedef cppcomponents_async_coroutine_wrapper::CoroutineVoidPtr co_type;
 			std::unique_ptr<co_type> coroutine_;
 			co_type::CallerType* coroutine_caller_;
+			use<InterfaceUnknown> future_;
 			coroutine_holder() : coroutine_(), coroutine_caller_(nullptr){}
 
 		};
@@ -70,13 +71,23 @@ namespace cppcomponents{
 
 		struct convertible_to_async_helper{};
 
+		typedef std::function < void ()> awaiter_func_type;
+
+		void execute_awaiter_func(void* v){
+			if (!v) return;
+			auto f = *static_cast<awaiter_func_type*>(v);
+			f();
+		}
+
 
 	}
+
+
 
 	template<class T>
 	class awaiter{
 		typedef detail::coroutine_holder* co_ptr;
-		typedef std::function<use<IFuture<T>>()> func_type;
+		typedef detail::awaiter_func_type func_type;
 		co_ptr co_;
 
 		template<class R>
@@ -84,42 +95,14 @@ namespace cppcomponents{
 			auto co = co_;
 			func_type retfunc([co, t]()mutable{
 				auto sptr = co->shared_from_this();
-				return t.Then([sptr](use < IFuture < R >> et)mutable{
+				t.Then([sptr](use < IFuture < R >> et)mutable{
 					detail::ret_type ret;
 					ret.eptr_ = nullptr;
 					ret.pv_ = nullptr;
 					ret.pv_ = &et;
 					(*sptr->coroutine_)(&ret);
 					try{
-						func_type f(std::move(*static_cast<func_type*>(sptr->coroutine_->Get())));
-						return f();
-					}
-					catch (std::exception&){
-						ret.eptr_ = std::current_exception();
-						ret.pv_ = nullptr;
-						(*sptr->coroutine_)(&ret);
-						throw;
-					}
-				}).Unwrap();
-			});
-
-			return retfunc;
-
-		}
-		template<class R>
-		func_type get_function(use<IExecutor> executor,use < IFuture < R >> t){
-			auto co = co_;
-			func_type retfunc([co, t,executor]()mutable{
-				auto sptr = co->shared_from_this();
-				return t.Then(executor,[sptr](use < IFuture < R >> et)mutable{
-					detail::ret_type ret;
-					ret.eptr_ = nullptr;
-					ret.pv_ = nullptr;
-					ret.pv_ = &et;
-					(*sptr->coroutine_)(&ret);
-					try{
-						func_type f(std::move(*static_cast<func_type*>(sptr->coroutine_->Get())));
-						return f();
+						detail::execute_awaiter_func(sptr->coroutine_->Get());
 					}
 					catch (std::exception& e){
 						(void)e;
@@ -128,7 +111,32 @@ namespace cppcomponents{
 						(*sptr->coroutine_)(&ret);
 						throw;
 					}
-				}).Unwrap();
+				});
+			});
+			return retfunc;
+		}
+		template<class R>
+		func_type get_function(use<IExecutor> executor, use < IFuture < R >> t){
+			auto co = co_;
+			func_type retfunc([co, t,executor]()mutable{
+				auto sptr = co->shared_from_this();
+				t.Then(executor,[sptr](use < IFuture < R >> et)mutable{
+					detail::ret_type ret;
+					ret.eptr_ = nullptr;
+					ret.pv_ = nullptr;
+					ret.pv_ = &et;
+					(*sptr->coroutine_)(&ret);
+					try{
+						detail::execute_awaiter_func(sptr->coroutine_->Get());
+					}
+					catch (std::exception& e){
+						(void)e;
+						ret.eptr_ = std::current_exception();
+						ret.pv_ = nullptr;
+						(*sptr->coroutine_)(&ret);
+						throw;
+					}
+				});
 			});
 
 			return retfunc;
@@ -209,7 +217,7 @@ namespace cppcomponents{
 			F f_;
 			typedef typename std::result_of<F(convertible_to_async_helper)>::type return_type;
 			typedef use<IFuture<return_type>> task_t;
-			typedef std::function<task_t()> func_type;
+			typedef std::function<void()> func_type;
 
 
 			static void coroutine_function(cppcomponents::use<cppcomponents_async_coroutine_wrapper::ICoroutineVoidPtr> ca){
@@ -218,21 +226,18 @@ namespace cppcomponents{
 				auto p = ca.Get();
 				auto pthis = reinterpret_cast<simple_async_function_holder*>(p);
 				pthis->coroutine_caller_ = &ca;
+				auto promise = make_promise<return_type>();
+				pthis->future_ = promise.template QueryInterface < InterfaceUnknown>();
 				try{
 					PPL_HELPER_ENTER_EXIT;
 					awaiter<return_type> helper(pthis);
-					ret_holder<return_type> ret(pthis->f_, helper);
-					func_type retfunc([ret](){
-						return ret.get_ready_future();
-					});
-					ca(&retfunc);
+					promise.SetResultOf(std::bind(pthis->f_, helper));
+					ca(nullptr);
 				}
 				catch (std::exception& e){
 					auto ec = cppcomponents::error_mapper::error_code_from_exception(e);
-					func_type retfunc([ec](){
-						return cppcomponents::make_error_future<return_type>(ec);
-					});
-					ca(&retfunc);
+					promise.SetError(ec);
+					ca(nullptr);
 				}
 			}
 		public:
@@ -240,8 +245,9 @@ namespace cppcomponents{
 
 			task_t run(){
 				coroutine_.reset(new coroutine_holder::co_type(cppcomponents::make_delegate<cppcomponents_async_coroutine_wrapper::CoroutineHandler>(coroutine_function), this));
-				func_type f(std::move(*static_cast<func_type*>(coroutine_->Get())));
-				return f();
+				 detail::execute_awaiter_func(coroutine_->Get());
+				
+				return this->future_.QueryInterface<IFuture<return_type>>();
 
 			}
 		};
@@ -272,6 +278,8 @@ namespace cppcomponents{
 		}
 
 		do_async_functor(F f) : f_{ f }{}
+
+		
 	};
 
 	}
