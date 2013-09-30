@@ -247,7 +247,7 @@ namespace cppcomponents{
 				coroutine_.reset(new coroutine_holder::co_type(cppcomponents::make_delegate<cppcomponents_async_coroutine_wrapper::CoroutineHandler>(coroutine_function), this));
 				 detail::execute_awaiter_func(coroutine_->Get());
 				
-				return this->future_.QueryInterface<IFuture<return_type>>();
+				return this->future_.template QueryInterface<IFuture<return_type>>();
 
 			}
 		};
