@@ -120,7 +120,7 @@ TEST_CASE("Async", "[async]"){
 
 	int i = 0;
 
-	auto f = cppcomponents::resumable<void>([](std::atomic<bool>* pdone,int* pi,cppcomponents::awaiter<void> await){
+	auto f = cppcomponents::resumable([](std::atomic<bool>* pdone,int* pi,cppcomponents::awaiter await){
 
 		auto f = cppcomponents::async(launch_on_new_thread_executor::create().QueryInterface<cppcomponents::IExecutor>(),
 			[]{return 10; });
@@ -142,8 +142,8 @@ TEST_CASE("Async2", "[async2]"){
 
 	int i = 0;
 
-	auto f = cppcomponents::resumable<void>([](std::atomic<bool>* pdone, int* pi, cppcomponents::awaiter<void> await){
-		auto f = cppcomponents::resumable<int>([](cppcomponents::awaiter<int> await){
+	auto f = cppcomponents::resumable([](std::atomic<bool>* pdone, int* pi, cppcomponents::awaiter await){
+		auto f = cppcomponents::resumable([](cppcomponents::awaiter await){
 
 			auto f = cppcomponents::async(launch_on_new_thread_executor::create().QueryInterface<cppcomponents::IExecutor>(),
 				[]{return 10; });
@@ -166,8 +166,8 @@ TEST_CASE("Async3", "[async2]"){
 
 	int i = 0;
 
-	auto f = cppcomponents::resumable<void>([](std::atomic<bool>* pdone, int* pi, cppcomponents::awaiter<void> await){
-		auto f = cppcomponents::resumable<int>([](cppcomponents::awaiter<int> await){
+	auto f = cppcomponents::resumable([](std::atomic<bool>* pdone, int* pi, cppcomponents::awaiter await){
+		auto f = cppcomponents::resumable([](cppcomponents::awaiter await){
 			auto e = launch_on_new_thread_executor::create().QueryInterface<cppcomponents::IExecutor>();
 			auto f = cppcomponents::async(e,
 				[]{return 10; });
@@ -191,7 +191,7 @@ TEST_CASE("Async Execption", "Async Exception"){
 
 	cppcomponents::LoopExecutor executor;
 
-	auto f = cppcomponents::resumable<int>([&](cppcomponents::awaiter<int> await){
+	auto f = cppcomponents::resumable([&](cppcomponents::awaiter await){
 		auto f2 = []()->int{
 			cppcomponents::throw_if_error(-101);
 			return 5;

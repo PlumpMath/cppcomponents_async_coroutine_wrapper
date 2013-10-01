@@ -69,7 +69,6 @@ namespace cppcomponents{
 			}
 		};
 
-		struct convertible_to_async_helper{};
 
 		typedef std::function < void ()> awaiter_func_type;
 
@@ -84,7 +83,6 @@ namespace cppcomponents{
 
 
 
-	template<class T>
 	class awaiter{
 		typedef detail::coroutine_holder* co_ptr;
 		typedef detail::awaiter_func_type func_type;
@@ -150,10 +148,6 @@ namespace cppcomponents{
 
 		}
 
-
-
-		awaiter(detail::convertible_to_async_helper);
-
 		template<class R>
 		use<IFuture<R>> as_future(use < IFuture < R >> t){
 			if (t.Ready()){
@@ -194,7 +188,7 @@ namespace cppcomponents{
 		struct ret_holder{
 			T value_;
 			template<class FT>
-			ret_holder(FT& f, awaiter<T> h) : value_(f(h)){}
+			ret_holder(FT& f, awaiter h) : value_(f(h)){}
 			const T& get()const{ return value_; }
 
 			use<IFuture<T>> get_ready_future()const{ return cppcomponents::make_ready_future(value_); }
@@ -202,7 +196,7 @@ namespace cppcomponents{
 		template<>
 		struct ret_holder<void>{
 			template<class FT>
-			ret_holder(FT& f, awaiter<void> h){
+			ret_holder(FT& f, awaiter h){
 				f(h);
 			}
 			void get()const{}
@@ -215,7 +209,7 @@ namespace cppcomponents{
 
 
 			F f_;
-			typedef typename std::result_of<F(convertible_to_async_helper)>::type return_type;
+			typedef typename std::result_of<F(awaiter)>::type return_type;
 			typedef use<IFuture<return_type>> task_t;
 			typedef std::function<void()> func_type;
 
@@ -230,7 +224,7 @@ namespace cppcomponents{
 				pthis->future_ = promise.template QueryInterface < InterfaceUnknown>();
 				try{
 					PPL_HELPER_ENTER_EXIT;
-					awaiter<return_type> helper(pthis);
+					awaiter helper(pthis);
 					promise.SetResultOf(std::bind(pthis->f_, helper));
 					ca(nullptr);
 				}
@@ -245,8 +239,8 @@ namespace cppcomponents{
 
 			task_t run(){
 				coroutine_.reset(new coroutine_holder::co_type(cppcomponents::make_delegate<cppcomponents_async_coroutine_wrapper::CoroutineHandler>(coroutine_function), this));
-				 detail::execute_awaiter_func(coroutine_->Get());
-				
+				detail::execute_awaiter_func(coroutine_->Get());
+
 				return this->future_.template QueryInterface<IFuture<return_type>>();
 
 			}
@@ -256,37 +250,72 @@ namespace cppcomponents{
 		struct return_helper{};
 
 		template<class R>
-		struct return_helper<R(awaiter<R>)>{
+		struct return_helper<R(awaiter)>{
 			typedef R type;
 		};
 
 
-	template<class F>
-	use<IFuture<typename std::result_of<F(detail::convertible_to_async_helper)>::type>> do_async(F f){
-		auto ret = std::make_shared<detail::simple_async_function_holder<F>>(f);
-		return ret->run();
-	}
-
-	
-	template<class R,class F>
-	struct do_async_functor{
-		F f_;
-		template<class... T>
-		use<IFuture<R>> operator()(T && ... t){
-			using namespace std::placeholders;
-			return do_async(std::bind(f_,std::forward<T>(t)..., _1));
+		template<class F>
+		use<IFuture<typename std::result_of<F(awaiter)>::type>> do_async(F f){
+			auto ret = std::make_shared<detail::simple_async_function_holder<F>>(f);
+			return ret->run();
 		}
 
-		do_async_functor(F f) : f_{ f }{}
 
-		
-	};
+		template<class R, class F>
+		struct do_async_functor{
+			F f_;
+			template<class... T>
+			use<IFuture<R>> operator()(T && ... t){
+				using namespace std::placeholders;
+				return do_async(std::bind(f_, std::forward<T>(t)..., _1));
+			}
 
+			do_async_functor(F f) : f_{ f }{}
+
+
+		};
+
+		namespace return_type_calculator{
+
+			// Calculate return type of callable
+			// Adapted from http://stackoverflow.com/questions/11893141/inferring-the-call-signature-of-a-lambda-or-arbitrary-callable-for-make-functio
+			template<class F>
+			using typer = F;
+
+			template<typename T> struct remove_class { };
+			template<typename C, typename R, typename... A>
+			struct remove_class<R(C::*)(A...)> { using type = typer<R(A...)>; using return_type = R; };
+			template<typename C, typename R, typename... A>
+			struct remove_class<R(C::*)(A...) const> { using type = typer<R(A...)>; using return_type = R; };
+			template<typename C, typename R, typename... A>
+			struct remove_class<R(C::*)(A...) volatile> { using type = typer<R(A...)>; using return_type = R; };
+			template<typename C, typename R, typename... A>
+			struct remove_class<R(C::*)(A...) const volatile> { using type = typer<R(A...)>; using return_type = R; };
+
+			template<class T>
+			using remove_reference_t = typename std::remove_reference<T>::type;
+			template<typename T>
+			struct get_signature_impl {
+				using type = typename remove_class<
+					decltype(&remove_reference_t<T>::operator())>::type;
+				using return_type = typename remove_class<
+					decltype(&remove_reference_t<T>::operator())>::return_type;
+			};
+			template<typename R, typename... A>
+			struct get_signature_impl<R(A...)> { using type = typer<R(A...)>; using return_type = R; };
+			template<typename R, typename... A>
+			struct get_signature_impl<R(&)(A...)> { using type = typer<R(A...)>; using return_type = R; };
+			template<typename R, typename... A>
+			struct get_signature_impl<R(*)(A...)> { using type = typer<R(A...)>; using return_type = R; };
+			template<typename T> using get_signature = typename get_signature_impl<T>::type;
+			template<typename T> using return_type = typename get_signature_impl<T>::return_type;
+
+		}
 	}
-
-	template<class R, class F>
-	detail::do_async_functor<R, F> resumable(F f){
-		return detail::do_async_functor<R, F>{f};
+	template<class F>
+	auto  resumable(F f) -> detail::do_async_functor<detail::return_type_calculator::return_type<decltype(f)>, F>{
+		return detail::do_async_functor<detail::return_type_calculator::return_type<F>, F>{f};
 	}
 
 }
