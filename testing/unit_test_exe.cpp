@@ -12,7 +12,7 @@
 
 
 TEST_CASE("Test multithread", "[coroutine]") {
-	std::atomic<bool> test = false;
+	std::atomic<bool> test{ false };
 
 	auto co = [](cppcomponents::awaiter await){};
 	auto threaded = [&](){
