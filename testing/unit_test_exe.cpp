@@ -4,38 +4,36 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 #include <string>
 #include "../cppcomponents_async_coroutine_wrapper/cppcomponents_resumable_await.hpp"
-#include <cppcomponents/channel.hpp>
+#include <thread>
+#include <vector>
 
 #define CATCH_CONFIG_MAIN  
 #include "external/catch.hpp"
 
+
 TEST_CASE("Test multithread", "[coroutine]") {
 	std::atomic<bool> test = false;
-	auto chan = cppcomponents::make_channel<int>();
 
-	auto co = [&](cppcomponents::awaiter await){
-		await(chan.Read());
-
-	};
+	auto co = [](cppcomponents::awaiter await){};
 	auto threaded = [&](){
 		auto resfunc = cppcomponents::resumable(co);
 		while (!test.load());
 		resfunc();
-
 	};
 
-	auto co2 = [&](cppcomponents::awaiter await){
-		await(chan.Write(1));
-	};
-	std::thread t{ threaded };
+	auto co2 = [](cppcomponents::awaiter await){};
+	std::vector<std::thread> threads;
+	for (int i = 0; i < 10; ++i){
+		threads.push_back(std::thread{ threaded });
+	}
 	auto resfunc = cppcomponents::resumable(co2);
 	test.store(true);
 	resfunc();
-	t.join();
 
+	for (auto& t : threads){
+		t.join();
+	}
 }
-
-
 
 struct ICounter : public cppcomponents::define_interface < cppcomponents::uuid<0x35779857, 0x9090, 0x4668, 0x8eee, 0xa67e359b66ae>>
 {
@@ -241,3 +239,4 @@ TEST_CASE("Async Execption", "Async Exception"){
 	REQUIRE(ec == -101);
 
 }
+

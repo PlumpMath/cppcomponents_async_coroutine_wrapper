@@ -12,8 +12,37 @@ using namespace cppcomponents_async_coroutine_wrapper;
 typedef boost::coroutines::coroutine<void*(void*) > co_type;
 
 
+// Visual C++ does not yet implement
+// thread-safe static initializations
+// boost::coroutines::detail::system_info looks like this
+//SYSTEM_INFO system_info()
+//{
+//	static SYSTEM_INFO si = system_info_();
+//	return si;
+//}
+// However, because Visual C++ does not have thread-safe
+// static initialization, there is a race. However, if we
+// call this function ourselves, before any other call to the function
+// then si get initialized properly without a race
+// We only need to do this with MSVC
+#ifdef _MSC_VER
+#include <windows.h>
+
+namespace boost {
+	namespace coroutines {
+		namespace detail {
 
 
+
+			SYSTEM_INFO system_info();
+
+		}
+	}
+}
+
+SYSTEM_INFO info = boost::coroutines::detail::system_info();
+
+#endif
 
 inline std::string CoroutineCallerId(){ return "cppcomponents_async_coroutine_wrapper!CoroutineCaller"; }
 
