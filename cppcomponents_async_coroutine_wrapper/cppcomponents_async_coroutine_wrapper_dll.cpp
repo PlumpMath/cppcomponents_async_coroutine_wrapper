@@ -64,6 +64,7 @@ struct ImplementCaller : public implement_runtime_class < ImplementCaller, Calle
 
 
 };
+CPPCOMPONENTS_REGISTER(ImplementCaller)
 
 struct ImplementCoroutineVoidPtr : public implement_runtime_class < ImplementCoroutineVoidPtr, CoroutineVoidPtr_t>
 {
@@ -81,5 +82,6 @@ struct ImplementCoroutineVoidPtr : public implement_runtime_class < ImplementCor
 
 
 };
+CPPCOMPONENTS_REGISTER(ImplementCoroutineVoidPtr)
 
 CPPCOMPONENTS_DEFINE_FACTORY();
